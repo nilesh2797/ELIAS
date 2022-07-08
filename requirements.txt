@@ -1,0 +1,14 @@
+torch
+transformers
+wandb
+numpy
+scipy
+seaborn
+pandas
+nmslib
+tabulate
+tqdm
+sentence-transformers
+accelerate
+libpecos
+cython
