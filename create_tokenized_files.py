@@ -2,15 +2,15 @@
 For a dataset, create tokenized files in the folder {tokenizer-type}-{maxlen} folder inside the database folder
 Sample usage: python -W ignore -u CreateTokenizedFiles.py --data-dir Datasets/LF-AmazonTitles-131K --max-length 32
 """
+import os, time
 import torch.multiprocessing as mp
 from transformers import AutoTokenizer
-import os
 import numpy as np
-import time
 import functools
 import argparse
 from tqdm import tqdm
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 def timeit(func):
     """Print the runtime of the decorated function"""
     @functools.wraps(func)
@@ -24,11 +24,11 @@ def timeit(func):
     return wrapper_timer
 
 def _tokenize(batch_input):
-    tokenizer, max_len, batch_corpus = batch_input[0], batch_input[1], batch_input[2]
+    tokenizer, maxlen, batch_corpus = batch_input[0], batch_input[1], batch_input[2]
     temp = tokenizer.batch_encode_plus(
                     batch_corpus,                           # Sentence to encode.
                     add_special_tokens = True,              # Add '[CLS]' and '[SEP]'
-                    max_length = max_len,                   # Pad & truncate all sentences.
+                    max_length = maxlen,                   # Pad & truncate all sentences.
                     padding = 'max_length',
                     return_attention_mask = True,           # Construct attn. masks.
                     return_tensors = 'np',                  # Return numpy tensors.
@@ -37,8 +37,9 @@ def _tokenize(batch_input):
 
     return (temp['input_ids'], temp['attention_mask'])
 
-def convert(corpus, tokenizer, max_len, num_threads, bsz=100000): 
-    batches = [(tokenizer, max_len, corpus[batch_start: batch_start + bsz]) for batch_start in range(0, len(corpus), bsz)]
+def convert(corpus, tokenizer, maxlen, num_threads):
+    bsz = len(corpus)//num_threads 
+    batches = [(tokenizer, maxlen, corpus[batch_start: batch_start + bsz]) for batch_start in range(0, len(corpus), bsz)]
 
     pool = mp.Pool(num_threads)
     batch_tokenized = pool.map(_tokenize, batches)
@@ -52,39 +53,29 @@ def convert(corpus, tokenizer, max_len, num_threads, bsz=100000):
     return input_ids, attention_mask
 
 @timeit
-def tokenize_dump_memmap(corpus, tokenization_dir, tokenizer, max_len, prefix, num_threads, batch_size=500000):
-    ii = np.memmap(f"{tokenization_dir}/{prefix}_input_ids.dat", dtype='int64', mode='w+', shape=(len(corpus), max_len))
-    am = np.memmap(f"{tokenization_dir}/{prefix}_attention_mask.dat", dtype='int64', mode='w+', shape=(len(corpus), max_len))
+def tokenize_dump_memmap(corpus, output_path, tokenizer, maxlen, num_threads, batch_size=500000):
+    ii = np.memmap(output_path, dtype='int64', mode='w+', shape=(len(corpus), maxlen))
     for i in tqdm(range(0, len(corpus), batch_size)):
-        _input_ids, _attention_mask = convert(corpus[i: i + batch_size], tokenizer, max_len, num_threads)
+        _input_ids, _ = convert(corpus[i: i + batch_size], tokenizer, maxlen, num_threads)
         ii[i: i + _input_ids.shape[0], :] = _input_ids
-        am[i: i + _input_ids.shape[0], :] = _attention_mask
+    print(len(corpus), maxlen, 'int64', file=open(f'{output_path}.meta', 'w'))
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--data-dir", type=str, required=True, help="Data directory path - with {trn,tst}_X.txt, {trn,tst}_X_Y.txt and Y.txt")
-parser.add_argument("--max-length", type=int, help="Max length for tokenizer", default=32)
-parser.add_argument("--tokenizer-type", type=str, help="Tokenizer to use", default="bert-base-uncased")
-parser.add_argument("--num-threads", type=int, help="Number of threads to use", default=32)
+parser.add_argument("--data-path", type=str, required=True, help="Data directory path - with {trn,tst}_X.txt, {trn,tst}_X_Y.txt and Y.txt")
+parser.add_argument("--tf-max-len", type=int, help="Max length for tokenizer", default=32)
+parser.add_argument("--tf-token-type", type=str, help="Tokenizer to use", default="bert-base-uncased")
+parser.add_argument("--num-threads", type=int, help="Number of threads to use", default=8)
 
 args = parser.parse_args()
 
-DATA_DIR = args.data_dir
+lines = [x.strip() for x in open(f'{args.data_path}', "r", encoding="utf-8").readlines()]
+print(f'Read {len(lines)} lines')
+maxlen = args.tf_max_len
 
-trnX = [x.strip() for x in open(f'{DATA_DIR}/raw/trn_X.txt', "r", encoding="utf-8").readlines()]
-tstX = [x.strip() for x in open(f'{DATA_DIR}/raw/tst_X.txt', "r", encoding="utf-8").readlines()]
+tokenizer = AutoTokenizer.from_pretrained(args.tf_token_type, do_lower_case=True)
 
-print(len(trnX), len(tstX))
+output_path = f'{".".join(args.data_path.split(".")[:-1])}.{args.tf_token_type}_{args.tf_max_len}.dat'
+print(f"Dumping tokenized file at {output_path}...")
 
-max_len = args.max_length
-
-tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_type, do_lower_case=True)
-
-tokenization_dir = f"{DATA_DIR}/{args.tokenizer_type}-{max_len}"
-os.makedirs(tokenization_dir, exist_ok=True)
-
-print(f"Dumping files in {tokenization_dir}...")
-print("Dumping for trnX...")
-tokenize_dump_memmap(trnX, tokenization_dir, tokenizer, max_len, "trn_doc", args.num_threads)
-print("Dumping for tstX...")
-tokenize_dump_memmap(tstX, tokenization_dir, tokenizer, max_len, "tst_doc", args.num_threads)
+tokenize_dump_memmap(lines, output_path, tokenizer, maxlen, args.num_threads)

@@ -1,0 +1,25 @@
+
+__dependency__: configs/elias.yaml
+
+# General parameters
+expname: 'ELIAS-2' # Experiment name
+dataset: LF-AmazonTitles-131K # Dataset name 
+net: elias-2 # Network class identifier
+loss: elias-loss # Loss class identifier
+tf_max_len: 32 # Maximum input sequence length of transformer
+resume_path: Results/[project]/[dataset]/Stage-1-0-prev/model.pt
+
+# Network parameters
+A_init_path: Results/[project]/[dataset]/Stage-1-0-prev/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+loss_lambda: 0.05
+
+# Training parameters
+num_epochs: 50 # Number of epochs
+bsz: 420 # Mini-batch size
+w_accumulation_steps: 10 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
+lr: 0.0001 # Learning rate for network parameters
+lr_wl: 0.005 # Learning rate for the classifier matrix (W_l) parameters
+lr_tf: 3.e-5 # Learning rate for the transformer encoder (\phi) parameters
+use_swa: True # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
+swa_start: 8 # SWA start epoch
+swa_step: 500 # SWA step size

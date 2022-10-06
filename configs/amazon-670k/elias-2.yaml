@@ -1,0 +1,23 @@
+
+__dependency__: configs/amazon-670k/elias-1.yaml
+
+# General parameters
+expname: 'ELIAS-2' # Experiment name
+net: elias-2 # Network class identifier
+resume_path: Results/[project]/[dataset]/ELIAS-1/model.pt
+
+# Network parameters
+A_init_path: Results/[project]/[dataset]/ELIAS-1/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+loss_lambda: 0.05 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
+ranker_calibrate: False # Calibrate ranker scores and elias scores
+
+# Training parameters
+num_epochs: 40 # Number of epochs
+bsz: 512 # Mini-batch size
+w_accumulation_steps: 10 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
+lr: 0.0006 # Learning rate for network parameters
+lr_wl: 0.01 # Learning rate for the classifier matrix (W_l) parameters
+lr_tf: 6.e-5 # Learning rate for the transformer encoder (\phi) parameters
+use_swa: True # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
+swa_start: 6 # SWA start epoch
+swa_step: 1000 # SWA step size

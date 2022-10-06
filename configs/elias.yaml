@@ -1,0 +1,50 @@
+# General parameters
+project: ELIAS # Project name
+expname: '' # Experiment name
+desc: 'Run ELIAS: End-to-end Learning to Index And Search in large output spaces'
+dataset: '' # Dataset name 
+net: '' # Network class identifier
+loss: elias-loss # Loss class identifier
+data_manager: xmc # Data manager class identifier
+tf: distilbert-base-uncased # Name of transformer encoder to be used in the model, all huggingface transformer model names are applicable
+tf_pooler: cls # Defines how to pool transformer final layer embeddings into a single vector representation [cls/mean]
+tf_max_len: 0 # Maximum input sequence length of transformer
+save: True # Save best model and score matrix
+resume_path: '' # Resume training from this model checkpoint
+data_tokenization: offline # Mode of data tokenization [offline/online]
+track_metric: nDCG@5 # Track this metric to evaluate best model
+num_val_points: 0 # Number of validation points taken from training set for evaluation during training
+cmat_seed: 0 # Seed for initial clustering of labels
+
+# Network parameters
+A_init_path: '' # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+bottleneck_dim: 0 # If non-zero then encoder embeddings are embeddings are projected by a linear MLP to specified dimensions
+wl_dim: 0 # If non-zero then encoder embeddings are projected by a linear MLP to specified dimensions only just before applying label classifiers (WL)
+max_leaf: 100 # Maximum number of labels per cluster, this defines number of clusters 
+beam_size: 20 # Beam size for search
+alpha: 10 # Hyperparameter that controls effective number of clusters that get activated for an input
+beta: 150 # Hyperparameter that controls effective number of labels that can get assigned to a cluster
+K: 2000 # Total number of labels that get shortlisted for label classifier evaluation
+kappa: 1000 # Row-wise sparsity of the label-cluster adjacency matrix A
+loss_lambda: 0.05 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
+ranker_calibrate: False # Calibrate ranker scores and elias scores
+
+# Training parameters
+optim_bundle: elias # Optimizer bundle class identifier
+optim: adamw # Torch optimizer class
+num_epochs: 50 # Number of epochs
+dropout: 0.5 # Dropout on encoder embeddings
+warmup: 0.1 # Fraction of warmup steps
+bsz: 1024 # Mini-batch size
+eval_interval: 3 # Evaluate current model at every specified number of epochs
+eval_topk: 100 # Number of label predictions for each test point during evaluation
+w_accumulation_steps: 1 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
+lr: 0.005 # Learning rate for network parameters
+lr_wl: 0.005 # Learning rate for the classifier matrix (W_l) parameters
+lr_tf: 2.0e-4 # Learning rate for the transformer encoder (\phi) parameters
+weight_decay: 0.01 # Optimizer weight decay
+amp_encode: False # Encode input (i.e. transformer forward) using pytorch amp
+norm_embs: False # Normalize embeddings
+use_swa: False # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
+swa_start: 8 # SWA start epoch
+swa_step: 1000 # SWA step size

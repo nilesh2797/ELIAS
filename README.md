@@ -1,2 +1,2 @@
 # ELIAS
-End-to-end Learning to Search and Index in Large Output Spaces
+End-to-end Learning to Index and Search in Large Output Spaces

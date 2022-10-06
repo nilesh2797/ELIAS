@@ -1,40 +1,86 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import sys
+import os, sys, yaml, argparse, re
 import numpy as np
-from operator import itemgetter
-import operator
 import scipy.sparse as sp
-import random as rnd
-import seaborn as sns
-from numpy import genfromtxt
 import pandas as pd
 import matplotlib.pyplot as plt
-import struct
-from sklearn.svm import LinearSVC
-import heapq
-from sklearn.preprocessing import normalize
-from multiprocessing import Pool
-from scipy import sparse
 from tqdm import tqdm
-import torch
-import nmslib
-import time
 from scipy.sparse import csr_matrix
-np.random.seed(22)
-
-import xclib.evaluation.xc_metrics as xc_metrics
-import xclib.data.data_utils as data_utils
 
 import xclib
-from tabulate import tabulate
-plt.style.use('dark_background')
-from io import StringIO
+import xclib.evaluation.xc_metrics as xc_metrics
+
+np.random.seed(22)
 
 if '__sysstdout__' not in locals():
     __sysstdout__ = sys.stdout
+
+def load_yaml(fname):
+    yaml_dict = yaml.safe_load(open(fname))
+    yaml_dict_list = []
+    if '__dependency__' in yaml_dict:
+        yaml_dict['__dependency__'] = ', '.join([dep_fname if os.path.isabs(dep_fname) else f'{os.getcwd()}/{dep_fname.strip()}' for dep_fname in yaml_dict['__dependency__'].split(',')])
+        for dep_fname in yaml_dict['__dependency__'].split(','):
+            yaml_dict_list = yaml_dict_list + load_yaml(dep_fname.strip())
+    yaml_dict_list.append(yaml_dict)
+    return yaml_dict_list
+
+def load_config_and_runtime_args(argv, **extra_args):
+    try: config_sep_index = [x.startswith('-') for x in argv[1:]].index(True) 
+    except: config_sep_index = len(argv[1:])
+    config_args = argv[1:1+config_sep_index]
+    runtime_args = argv[1+config_sep_index:]
+
+    parser = argparse.ArgumentParser()
+    yaml_dict_lol = [load_yaml(fname) for fname in config_args]
+    yaml_dict_list = [yaml_dict for yaml_dict_list in yaml_dict_lol for yaml_dict in yaml_dict_list]
+    yaml_dict_list.append(extra_args)
+    config = {k: v for d in yaml_dict_list for k, v in d.items()}
+    config = pd.json_normalize(config, sep='_').to_dict(orient="records")[0]
+    for k, v in config.items():
+        parser.add_argument(f'--{k}', default=v, type=str_to_bool if isinstance(v, bool) else type(v))
+    args = parser.parse_args(runtime_args)
+    args.__dict__ = {k: re.sub(r'\[(\w+)\]', lambda x: args.__dict__[x.group(0)[1:-1]], v) if isinstance(v, str) else v for k, v in args.__dict__.items()}
+    return args
+
+def get_inv_prop(X_Y, dataset_name):
+    if "amazon" in dataset_name.lower(): A = 0.6; B = 2.6
+    elif "wiki" in dataset_name.lower() and "wikiseealso" not in dataset_name.lower(): A = 0.5; B = 0.4
+    else : A = 0.55; B = 1.5
+    return xc_metrics.compute_inv_propesity(X_Y, A, B)
+
+def load_filter_mat(fname, shape):
+    filter_mat = None
+    if os.path.exists(fname):
+        temp = np.fromfile(fname, sep=' ').astype(int)
+        temp = temp.reshape(-1, 2).T
+        filter_mat = sp.coo_matrix((np.ones(temp.shape[1]), (temp[0], temp[1])), shape).tocsr()
+    return filter_mat
+
+def str_to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def dump_diff_config(config_fname, config_dict):
+    if os.path.exists(config_fname):
+        with open(config_fname, 'a+') as f:
+            print('# New experiment', file=f)
+            prev_config = yaml.safe_load(open(config_fname))
+            diff_config = dict(set(config_dict.items()) - set(prev_config.items()))
+            print('', file=f)
+            if len(diff_config) > 0:
+                yaml.safe_dump(diff_config, f)
+                return diff_config
+    else:
+        yaml.safe_dump(config_dict, open(config_fname, 'w'))
 
 def get_free_gpu():
     os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
@@ -45,62 +91,6 @@ def get_text(x, text, X_Xf, sep=' ', K=-1, attr='bold underline'):
     if K == -1: K = X_Xf[x].nnz
     sorted_inds = X_Xf[x].indices[np.argsort(-X_Xf[x].data)][:K]
     return '%d : \n'%x + sep.join(['%s(%.2f, %d)'%(_c(text[i], attr=attr), X_Xf[x, i], i) for i in sorted_inds])
-
-class Visualize:
-    mats = {};
-    colors = ['green', 'yellow', 'purple', 'blue', 'red']
-    def __init__(self, mats, row_text = None, col_text = None):
-        # first mat is base mat
-        self.base_mat = list(mats.values())[0]
-        self.mats = {k : {'mat' : v, 'color' : self.colors[i], 'base' : i==0} for i, (k, v) in enumerate(mats.items()) }
-        self.row_text = row_text
-        self.col_text = col_text
-        
-    def get_row_text(self, x):
-        return self.row_text[x]
-    
-    def get_col_text(self, x):
-        return self.col_text[x]
-    
-    def getX(self, x, K=10):
-        print('Raw text \t: %d : %s'%(x, _c(self.get_row_text(x), attr='bold underline')))
-        print('Feature text \t: %s'%get_text(x, Xf, sp_tst_X_Xf))
-        for name, obj in self.mats.items():
-            print(_c('\n' + name + ' : ', attr='bold %s'%(obj['color'])))
-            sorted_inds = obj['mat'][x].indices[np.argsort(-obj['mat'][x].data)[:K]]
-            for i, ind in enumerate(sorted_inds):
-                attr = 'ENDC'
-                if self.base_mat[x, ind] and not obj['base']: attr = 'reverse'
-                print(_c('%d : %s[%d] : %.4f'%(i+1, self.get_col_text(ind), ind, obj['mat'][x, ind]), attr=attr))
-
-class CaptureIO(list):
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-    def __exit__(self, *args):
-        self.append(''.join(self._stringio.getvalue()))
-        del self._stringio    # free up some memory
-        sys.stdout = self._stdout
-        
-def dump_output_log(filename = None, clear=False, overwrite=False):
-    if filename is None: filename = '%s/visual_analysis.log'%results_dir
-    global output
-    mode= 'a+'
-    if overwrite: mode = 'w'
-    
-    with open(filename, mode) as f:
-        f.write(';'.join([*output, '']))
-        
-    if clear:
-        with CaptureIO() as output: print('init')
-            
-def load_output_log(filename = None):
-    if filename is None: filename = '%s/visual_analysis.log'%results_dir    
-    log = None
-    with open(filename, 'r') as f:
-        log = f.read().split(';')
-    return log
 
 import decimal
 def myprint(*args, sep = ' ', end = '\n'):
@@ -114,8 +104,7 @@ def drange(x, y, jump):
         yield float(x)
         x += decimal.Decimal(jump)
         
-def recall(spmat, X_Y = None, K = [1, 10, 50, 100]):
-    if X_Y is None : X_Y = tst_X_Y.copy()
+def recall(spmat, X_Y, K = [1, 10, 50, 100]):
     X_Y.data[:] = 1
     ans = {}
     rank_mat = xclib.utils.sparse.rank(spmat)
@@ -196,21 +185,6 @@ def read_sparse_mat(filename, use_xclib=True):
             score_mat = csr_matrix((data, indices, indptr), (nr, nc))
             del data, indices, indptr
             return score_mat
-            
-def printacc(score_mat, X_Y = None, K = 5, disp = True, inv_prop_ = -1):
-    if X_Y is None: X_Y = tst_X_Y
-    if inv_prop_ is -1 : inv_prop_ = inv_prop
-        
-    acc = xc_metrics.Metrics(X_Y.tocsr().astype(np.bool), inv_prop_)
-    metrics = np.array(acc.eval(score_mat, K))*100
-    df = pd.DataFrame(metrics)
-    
-    if inv_prop_ is None : df.index = ['P', 'nDCG']
-    else : df.index = ['P', 'nDCG', 'PSP', 'PSnDCG']
-        
-    df.columns = [i+1 for i in range(K)]
-    if disp: print(df.round(2))
-    return df
 
 from xclib.utils.sparse import rank as sp_rank
 
@@ -241,7 +215,7 @@ def MRR(rank_intrsxn_mat, true_mat, K=[1,3,5,10,20,50,100]):
         res[k] = max_rr.mean()*100
     return res
 
-def XCMetrics(score_mat, X_Y, inv_prop, disp = True, fname = None, method = 'Method'): 
+def compute_xmc_metrics(score_mat, X_Y, inv_prop, K=100, disp = True, fname = None, name = 'Method'): 
     X_Y = X_Y.tocsr().astype(np.bool_)
     acc = xc_metrics.Metrics(X_Y, inv_prop)
     xc_eval_metrics = np.array(acc.eval(score_mat, 5))*100
@@ -253,7 +227,8 @@ def XCMetrics(score_mat, X_Y, inv_prop, disp = True, fname = None, method = 'Met
     
     rank_mat = sp_rank(score_mat)
     intrsxn_mat = rank_mat.multiply(X_Y)
-    ret_eval_metrics = pd.DataFrame({'R': Recall(intrsxn_mat, X_Y, K=[10, 20, 100]), 'MRR': MRR(intrsxn_mat, X_Y, K=[10])}).T
+    recallKs = [*[10, 20, 50], *[100*i for i in range(1, 1+(K//100))]]
+    ret_eval_metrics = pd.DataFrame({'R': Recall(intrsxn_mat, X_Y, K=recallKs), 'MRR': MRR(intrsxn_mat, X_Y, K=[10])}).T
     ret_eval_metrics = ret_eval_metrics.reindex(sorted(ret_eval_metrics.columns), axis=1)
         
     df1 = xc_eval_metrics[[1,3,5]].iloc[[0,1,2]].round(2).stack().to_frame().transpose()
@@ -261,10 +236,10 @@ def XCMetrics(score_mat, X_Y, inv_prop, disp = True, fname = None, method = 'Met
 
     df = pd.concat([df1, df2], axis=1)
     df.columns = [f'{col[0]}@{col[1]}' for col in df.columns.values]
-    df.index = [method]
+    df.index = [name]
 
     if disp:
-        disp_df = df[['P@1', 'P@3', 'P@5', 'nDCG@1', 'nDCG@3', 'nDCG@5', 'PSP@1', 'PSP@3', 'PSP@5', 'R@10', 'R@20', 'R@100']].round(2)
+        disp_df = df[[*['P@1', 'P@3', 'P@5', 'nDCG@1', 'nDCG@3', 'nDCG@5', 'PSP@1', 'PSP@3', 'PSP@5'], *[x for x in df.columns if x.startswith('R@')]]].round(2)
         print(disp_df.to_csv(sep='\t', index=False))
         print(disp_df.to_csv(sep=' ', index=False))
     if fname is not None:
@@ -301,9 +276,8 @@ def _c(*args, attr='bold'):
     string += ' '.join([str(arg) for arg in args])+bcolors.ENDC
     return string
 
-def vis_point(x, spmat, X, Y, nnz, true_mat=None, sep='', K=-1, expand=False, trnx_nnz=None):
+def vis_point(x, spmat, X, Y, nnz, true_mat, sep='', K=-1, expand=False, trnx_nnz=None, trn_Y_X=None, trnX=None):
     if K == -1: K = spmat[x].nnz
-    if true_mat is None: true_mat = tst_X_Y
         
     sorted_inds = spmat[x].indices[np.argsort(-spmat[x].data)][:K]
     print(f'x[{x}]: {_c(X[x], attr="bold")}\n')
@@ -327,8 +301,7 @@ def get_decile_mask(X_Y):
         decile_mask[i, deciles[i]] = True
     return decile_mask
 
-def decileWisePVolume(score_mats, tst_X_Y, K=5, mask=None):
-    if mask is None : mask = decile_mask
+def decileWisePVolume(score_mats, tst_X_Y, decile_mask, K=5):
     plt.xticks(range(10))
     plt.title('decile contribution to P@%d'%(K))
         
@@ -338,7 +311,7 @@ def decileWisePVolume(score_mats, tst_X_Y, K=5, mask=None):
         temp_score_mat = xclib.utils.sparse.retain_topk(temp_score_mat, k=K)
         intrsxn_score_mat = temp_score_mat.multiply(tst_X_Y)
         
-        intrsxn_data = [mask[i, intrsxn_score_mat.indices].sum()*100 / (intrsxn_score_mat.shape[0]*K) for i in range(10)]
+        intrsxn_data = [decile_mask[i, intrsxn_score_mat.indices].sum()*100 / (intrsxn_score_mat.shape[0]*K) for i in range(10)]
         plt.plot(intrsxn_data, label=name)
         plt.legend()
         
@@ -352,8 +325,7 @@ def decileWisePVolume(score_mats, tst_X_Y, K=5, mask=None):
     df = df.round(2)
     return df
 
-def decileWiseVolume(score_mats, tst_X_Y, K=5, mask=None):
-    if mask is None : mask = decile_mask
+def decileWiseVolume(score_mats, decile_mask, K=5):
     plt.xticks(range(10))
     plt.title(f'% deciles present in score_mat top {K}')
     

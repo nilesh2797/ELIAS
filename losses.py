@@ -48,70 +48,81 @@ class OvABCELoss(nn.Module):
         loss = self.criterion(out, targets)
         return loss
     
-class BeamBCELoss(nn.Module):
+class ELIASLoss(nn.Module):
     def __init__(self, args, reduction='mean'):
-        super(BeamBCELoss, self).__init__()
+        super().__init__()
         self.numy = args.numy
-        self.gamma = args.beam_loss_gamma
-        self.mask = torch.zeros(self.numy+1).long().to(args.device) # +1 to handle pad index
-        if args.loss_with_logits:
-            self.criterion = torch.nn.BCEWithLogitsLoss(reduction=reduction)
-        else:
-            self.criterion = torch.nn.BCELoss(reduction=reduction)
+        self.loss_lambda = args.loss_lambda
+        self.criterion = torch.nn.BCELoss(reduction=reduction)
 
     def forward(self, model, b):
-        out1, out, shorty = model(b)
+        topK_label_vals, topK_label_inds, label_shortlist_vals, label_shortlist_inds = model(b)
         
-        yfull = torch.zeros((out.shape[0], self.numy+1), device=out.device).scatter_(1, b['y']['inds'], 1)
-        yfull[:, -1] = 0.0
-        targets  = torch.gather(yfull, 1, shorty)
+        # Figure out ground truth target for topK labels and shortlisted labels
+        with torch.no_grad():
+            topK_label_targets = torch.zeros_like(topK_label_vals)
+            label_shortlist_targets = torch.zeros_like(label_shortlist_vals)
+            # Iterate over each column of b['y'] (groud truth) and check if the index matches or not
+            for j in range( b['y']['inds'].shape[1]):
+                inds_match_mask = (topK_label_inds ==  b['y']['inds'][:, [j]])
+                topK_label_targets = torch.where(inds_match_mask,  b['y']['vals'][:, [j]], topK_label_targets)
+                inds_match_mask = (label_shortlist_inds ==  b['y']['inds'][:, [j]]) & (label_shortlist_inds < self.numy)
+                label_shortlist_targets = torch.where(inds_match_mask,  torch.tensor(1.0).to(inds_match_mask.device), label_shortlist_targets)
 
-        cluster_targets = torch.zeros_like(out1).scatter_(1, model.parent[b['y']['inds']], 1)
-        cluster_targets[:, -1] = 0
+        loss_classification = self.criterion(topK_label_vals, topK_label_targets)
+            
+        # Figure out positively labelled shortlist targets since shortlist loss is only computed on positive entries
+        pos_label_shortlist_targets, pos_label_shortlist_inds = label_shortlist_targets.topk(b['y']['inds'].shape[1])
+        pos_label_shortlist_vals = label_shortlist_vals.gather(1, pos_label_shortlist_inds)
+        pos_label_shortlist_vals[pos_label_shortlist_targets < 1e-5] = 0
+        loss_shortlist = self.criterion(pos_label_shortlist_vals, pos_label_shortlist_targets)
         
-        loss = self.criterion(out, targets) + self.gamma*self.criterion(out1, cluster_targets)
-        del b, out, out1, yfull, targets, cluster_targets
+        loss = loss_classification + self.loss_lambda*loss_shortlist
+        
+        del b, topK_label_vals, topK_label_inds, label_shortlist_vals, label_shortlist_inds, topK_label_targets, label_shortlist_targets
         return loss
-    
-class JointLoss(nn.Module):
-    def __init__(self, args, reduction='mean'):
-        super(JointLoss, self).__init__()
+
+class TripletOHNM(nn.Module):
+    def __init__(self, args):
+        super(TripletOHNM, self).__init__()
         self.numy = args.numy
-        self.mask = torch.zeros((256, self.numy+1), dtype=torch.bool).to(args.device) # +1 to handle pad index
-        self.gamma = args.joint_loss_gamma
-        if args.loss_with_logits:
-            self.criterion = torch.nn.BCEWithLogitsLoss(reduction=reduction)
-        else:
-            self.criterion = torch.nn.BCELoss(reduction=reduction)
+        self.margin = args.loss_margin
+        self.num_neg = args.loss_num_neg
 
     def forward(self, model, b):
-        out, shorty, topk_C_vals, topk_C_inds = model(b)
+        xembs = model.encode({'xfts': b['xfts']})
+        yembs = model.encode({'xfts': b['yfts']})
+        target = b['targets']
+        sim = xembs @ yembs.T
+        sim_p = torch.gather(sim, 1, b['pos-inds']).reshape(b['batch_size'], -1)
+        neg_sim = torch.where(target < 1e-6, sim, torch.full_like(sim, -100))
+        _, indices = torch.topk(neg_sim, largest=True, dim=1, k=self.num_neg)
+        sim_n = sim.gather(1, indices)
+        loss = torch.max(torch.zeros_like(sim_p), sim_n - sim_p + self.margin)
+        mask = torch.where(loss != 0, torch.ones_like(loss), torch.zeros_like(loss))
+        prob = torch.softmax(sim_n * mask, dim=1)
+        reduced_loss =  (loss * prob).mean()
         
-        out_targets = torch.zeros_like(out)
-        topk_C_targets = torch.zeros_like(topk_C_vals)
-        mbsz = self.mask.shape[0]
-        for i in range(0, out.shape[0], mbsz):
-            self.mask.scatter_(1, b['y']['inds'][i:i+mbsz], True)
-            self.mask[:, -1] = False
-            out_targets[i:i+mbsz] = self.mask.gather(1, shorty[i:i+mbsz])
-            topk_C_targets[i:i+mbsz] = self.mask.gather(1, topk_C_inds[i:i+mbsz])
-            self.mask.scatter_(1, b['y']['inds'][i:i+mbsz], False)
-        
-        loss_precision = self.criterion(out, out_targets)
-        
-        targets, target_inds = topk_C_targets.topk(topk_C_targets.sum(dim=-1).max().long())
-        topk_C_vals = topk_C_vals.gather(1, target_inds)
-        topk_C_vals[targets < 1e-5] = 0
-        loss_recall = self.criterion(topk_C_vals, targets)
-        
-        loss = loss_precision + self.gamma*loss_recall
-        
-        del b, out, targets, shorty, topk_C_vals, topk_C_inds, topk_C_targets, out_targets
-        return loss
+        del b, xembs, yembs, sim, neg_sim, sim_p, sim_n, mask, prob, loss
+        return reduced_loss
+
+class InfoNCE(nn.Module):
+    def __init__(self, args):
+        super().__init__()
+        self.loss_tau = args.loss_tau
+        self.loss_reduction = args.loss_reduction
+
+    def forward(self, model, b):
+        xembs = model.encode({'xfts': b['xfts']})
+        yembs = model.encode({'xfts': b['yfts']})
+        target = b['targets']
+        sim = xembs @ yembs.T
+        return F.cross_entropy(sim / self.loss_tau, target, reduction=self.loss_reduction)
     
 LOSSES = {
     'ova-bce': OvABCELoss,
     'batch-bce': BatchBCELoss,
-    'beam-bce': BeamBCELoss,
-    'joint': JointLoss
+    'elias-loss': ELIASLoss,
+    'triplet-ohnm': TripletOHNM,
+    'infonce': InfoNCE
     }
