@@ -1,0 +1,23 @@
+version: 1
+formatters:
+  simple:
+    format: '%(levelname)s - %(name)s - %(asctime)s : %(message)s'
+    datefmt: '%d-%b-%y %H:%M:%S'
+  error:
+    format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s() : %(message)s"
+    datefmt: '%d-%b-%y %H:%M:%S'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stdout
+  file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: simple
+    filename: log.txt
+    backupCount: 20
+root:
+  level: INFO
+  handlers: [console, file_handler]
