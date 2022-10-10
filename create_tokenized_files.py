@@ -65,7 +65,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data-path", type=str, required=True, help="Data directory path - with {trn,tst}_X.txt, {trn,tst}_X_Y.txt and Y.txt")
 parser.add_argument("--tf-max-len", type=int, help="Max length for tokenizer", default=32)
 parser.add_argument("--tf-token-type", type=str, help="Tokenizer to use", default="bert-base-uncased")
-parser.add_argument("--num-threads", type=int, help="Number of threads to use", default=8)
+parser.add_argument("--num-threads", type=int, help="Number of threads to use", default=32)
 
 args = parser.parse_args()
 
