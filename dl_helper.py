@@ -102,6 +102,7 @@ def apply_and_accumulate(data_loader, func, accelerator, display_name='Iterating
                     if k not in out:
                         out[k] = np.zeros((len(data_loader.dataset), b_out[k].shape[-1]))
                     out[k][b['ids'].cpu()] = b_out[k].detach().cpu().numpy()
+            del b_out, b
     return out
 
 def create_tf_pooler(pooler_type: str):
