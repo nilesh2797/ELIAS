@@ -29,7 +29,7 @@ class BaseOptimizerBundle:
 
     def zero_grad(self):
         assert self.optims is not None
-        for optim in self.optims.values(): optim.zero_grad()
+        for optim in self.optims.values(): optim.zero_grad(set_to_none=True)
 
     def _no_decay(self, n, p):
         return any([x in n.lower() for x in ['bias', 'layernorm', 'layer_norm']]) or p.shape == (1,)
@@ -67,7 +67,7 @@ class BaseOptimizerBundle:
                 else:
                     self.optims[k].step()
                 if self.schedulers: self.schedulers[k].step()
-                self.optims[k].zero_grad()
+                self.optims[k].zero_grad(set_to_none=True)
         self.step_count += 1
 
 class EliasOptimizerBundle(BaseOptimizerBundle):
@@ -84,7 +84,7 @@ class EliasOptimizerBundle(BaseOptimizerBundle):
         return any([x in n.lower() for x in ['bias', 'layernorm', 'layer_norm']])
 
     def _is_tf_param(self, n, p):
-        return n.startswith('tf.')
+        return n.startswith('tf.') or n.startswith('WL_transform.') or n.startswith('bottleneck.')
 
     def _is_wl_param(self, n, p):
         return any(abs(x - self.numy) <= 1 for x in p.shape) or n.startswith('A_nz_vals')
