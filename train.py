@@ -100,3 +100,4 @@ for epoch in range(args.num_epochs):
             wandb.log({'metrics': metrics}, step=epoch)
         sys.stdout.flush()
     accelerator.wait_for_everyone()
+    torch.cuda.empty_cache()

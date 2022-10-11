@@ -177,6 +177,12 @@ class XMCDataManager():
 		else:
 			self.trn_inds = self.val_inds = None
 
+	def load_raw_texts(self):
+		self.trnX = [x.strip() for x in open(f'{self.DATA_DIR}/trn_X.txt')]
+		self.tstX = [x.strip() for x in open(f'{self.DATA_DIR}/tst_X.txt')]
+		self.Y = [x.strip() for x in open(f'{self.DATA_DIR}/Y.txt')]
+		return self.trnX, self.tstX, self.Y
+
 	def load_bow_fts(self, normalize=True):
 		trn_X_Xf = sp.load_npz(f'{self.DATA_DIR}/X.trn.npz')
 		tst_X_Xf = sp.load_npz(f'{self.DATA_DIR}/X.tst.npz')
