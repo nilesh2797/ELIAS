@@ -182,40 +182,6 @@ class OvANet(TFEncoder):
             out = torch.sigmoid(out)
         return out
 
-class BinarizeWeight(autograd.Function):
-    @staticmethod
-    def forward(ctx, scores):
-        # Get the subnetwork by sorting the scores and using the top k%
-        out = scores.clone()
-        # flat_out and out access the same memory.
-        out[out <= 0] = -1.0
-        out[out >= 0] = 1.0
-        return out
-
-    @staticmethod
-    def backward(ctx, g):
-        # send the gradient g straight-through on the backward pass.
-        return g,None
-
-class LLCOvANet(OvANet):
-    def __init__(self, args):
-        super().__init__(args)
-        if not args.llc_use_bias:
-            self.w.bias.requires_grad = False
-            self.w.bias[:] = 0
-    
-    def forward(self, b, activey = None):
-        embs = self.encode(b)
-        binary_weight = BinarizeWeight.apply(self.w.weight)
-        if activey is None: 
-            out = F.linear(embs, binary_weight, self.w.bias.view(-1))
-        else: 
-            out = F.linear(embs, binary_weight[activey], self.w.bias[activey].view(-1))
-            
-        if not self.loss_with_logits:
-            out = torch.sigmoid(out)
-        return out
-
 class ELIAS1(TFEncoder):
     def __init__(self, args):
         super().__init__(args)
@@ -292,7 +258,7 @@ class ELIAS2(ELIAS1):
     def __init__(self, args):
         super().__init__(args)
         self.beta = args.beta
-        self.no_swa = lambda n: (n == 'A_nz_vals')
+        self.no_swa = lambda n: (n == 'A_nz_vals_param')
         # Leranable parameter which determines the weights (A_nz_vals) in the cluster-label adjacency matrix A
         self.register_parameter('A_nz_vals_param', nn.Parameter(torch.rand_like(self.A_nz_vals)))
         self.update_A()
@@ -362,6 +328,5 @@ NETS = {
     'elias-1': ELIAS1,
     'elias-2': ELIAS2,
     'tf-encoder': TFEncoder,
-    'llc-ova-net': LLCOvANet,
     'two-tower': TwoTowerEncoder
     }
