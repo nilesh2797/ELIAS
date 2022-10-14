@@ -28,6 +28,8 @@ args.DATA_DIR = DATA_DIR = f'Datasets/{args.dataset}'
 args.OUT_DIR = OUT_DIR = args.OUT_DIR if hasattr(args, 'OUT_DIR') else f'Results/{args.project}/{args.dataset}/{args.expname}'
 args.wandb_id = args.wandb_id if hasattr(args, 'wandb_id') else 'None'
 args.resume_path = f'{args.OUT_DIR}/model.pt'
+if mode == 'gen_cluster_A' or mode == 'gen_approx_A':
+    args.num_val_points = 0
 os.makedirs(OUT_DIR, exist_ok=True)
 
 if IS_MAIN_PROC:
@@ -42,8 +44,8 @@ logging.info(f'Wandb ID: {args.wandb_id}')
 
 # Data loading
 data_manager = XMCDataManager(args)
-trn_X_Y = data_manager.trn_X_Y.astype(np.float32)
 trn_loader, val_loader, tst_loader = data_manager.build_data_loaders()
+trn_X_Y = trn_loader.dataset.labels.astype(np.float32)
 
 accelerator.wait_for_everyone()
 if os.path.exists(args.resume_path) and (not args.no_model):
