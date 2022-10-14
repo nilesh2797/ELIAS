@@ -13,6 +13,6 @@ ranker_calibrate: False # Calibrate ranker scores and elias scores
 
 # Training parameters
 num_epochs: 20 # Number of epochs
-lr: 0.0002 # Learning rate for network parameters
-lr_wl: 0.001 # Learning rate for the classifier matrix (W_l) parameters
-lr_tf: 2.e-5 # Learning rate for the transformer encoder (\phi) parameters
+lr: 3.e-5 # Learning rate for network parameters
+lr_wl: 0.006 # Learning rate for the classifier matrix (W_l) parameters
+lr_tf: 6.e-6 # Learning rate for the transformer encoder (\phi) parameters
