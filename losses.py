@@ -1,3 +1,4 @@
+from turtle import forward
 import torch.nn as nn
 import torch.nn.functional as F
 import torch 
@@ -118,11 +119,19 @@ class InfoNCE(nn.Module):
         target = b['targets']
         sim = xembs @ yembs.T
         return F.cross_entropy(sim / self.loss_tau, target, reduction=self.loss_reduction)
+
+class TFLoss(nn.Module):
+    def __init__(self, args):
+        super().__init__()
+
+    def forward(self, model, b):
+        return model(b).loss
     
 LOSSES = {
     'ova-bce': OvABCELoss,
     'batch-bce': BatchBCELoss,
     'elias-loss': ELIASLoss,
     'triplet-ohnm': TripletOHNM,
-    'infonce': InfoNCE
+    'infonce': InfoNCE,
+    'tf-loss': TFLoss
     }

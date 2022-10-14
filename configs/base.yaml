@@ -1,0 +1,38 @@
+# General parameters
+project: '' # Project name
+expname: 'base' # Experiment name
+desc: 'TODO' # Short description of the exepriment
+dataset: '' # Dataset name 
+net: '' # Network class identifier
+loss: '' # Loss class identifier
+data_manager: xmc
+tf: distilbert-base-uncased # Name of transformer encoder to be used in the model, all huggingface transformer model names are applicable
+tf_pooler: cls # Defines how to pool transformer final layer embeddings into a single vector representation [cls/mean]
+tf_max_len: 32 # Maximum input sequence length of transformer
+save: False # Save best model and score matrix
+resume_path: '' # Resume training from this model checkpoint
+data_tokenization: offline # Mode of data tokenization [offline/online]
+num_val_points: 0 # Number of validation points taken from training set for evaluation during training
+track_metric: nDCG@5 # Track this metric to evaluate best model
+
+# Network parameters
+bottleneck_dim: 0 # If non-zero then encoder embeddings are embeddings are projected by a linear MLP to specified dimensions
+loss_with_logits: False # Whether to use nn.BCELoss (if true) vs nn.BCEWithLogits (if false) in loss
+
+# Training parameters
+optim_bundle: base # Optimizer bundle class identifier
+optim: adamw # Torch optimizer class identifier
+num_epochs: 50 # Number of epochs
+dropout: 0.5 # Dropout on encoder embeddings
+warmup: 0.1 # Fraction of warmup steps
+bsz: 1024 # Mini-batch size
+eval_interval: 3 # Evaluate current model at every specified number of epochs
+eval_topk: 100 # Number of label predictions for each test point during evaluation
+w_accumulation_steps: 1 # It's more efficient to apply weight updates to classification matrix after every accumulation steps
+lr: 1.e-4 # Learning rate for the rest of the parameters
+weight_decay: 0.01 # Optimizer weight decay
+amp_encode: False # Encode input (i.e. transformer forward) using pytorch amp
+norm_embs: False # Normalize embeddings
+use_swa: False # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
+swa_start: 8 # SWA start epoch
+swa_step: 1000 # SWA step size
