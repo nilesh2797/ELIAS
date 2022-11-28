@@ -9,7 +9,7 @@ resume_path: Results/[project]/[dataset]/ELIAS-1/model.pt
 # Network parameters
 A_init_path: Results/[project]/[dataset]/ELIAS-1/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
 loss_lambda: 0.05 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
-ranker_calibrate: True # Calibrate ranker scores and elias scores
+ranker_calibrate: False # Calibrate ranker scores and elias scores
 
 # Training parameters
 num_epochs: 30 # Number of epochs

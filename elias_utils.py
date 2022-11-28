@@ -16,6 +16,8 @@ from dl_helper import unwrap
 
 import transformers
 transformers.set_seed(42)
+if torch.__version__ > "1.11":
+    torch.backends.cuda.matmul.allow_tf32 = True
 
 # Config and runtime argument parsing
 mode = sys.argv[1]
@@ -128,14 +130,14 @@ if mode == 'sparse_ranker':
         tst_ranker_score_mat = mlm.predict(tst_ranker_embs, csr_codes=tst_score_mat.astype(np.float32), only_topk=tst_score_mat.shape[1])
 
         if args.ranker_calibrate:
-            inv_prop = data_manager.inv_prop
+            nnz = trn_labels.getnnz(0)
             from sklearn import tree
-            def get_tree_fts(smats, tmat = None, clf = None, mode='test'):
+            def process_tree_fts(smats, tmat = None, clf = None, mode='test'):
                 temp = smats[0].tocoo()
                 scores = []
                 for smat in smats:
                     scores.append(np.array(smat[temp.row, temp.col]).reshape(-1, 1))
-                scores.append(inv_prop[temp.col].reshape(-1, 1))
+                scores.append(nnz[temp.col].reshape(-1, 1))
                 scores = np.hstack(scores)
 
                 if mode == 'train':
@@ -145,9 +147,9 @@ if mode == 'sparse_ranker':
                     res = smats[0].copy()
                     res[temp.row, temp.col] = clf.predict_proba(scores)[:, 1]
                     return res.tocsr()
-            clf = tree.DecisionTreeClassifier(max_depth=6)
-            clf = clf.fit(*get_tree_fts([val_ranker_score_mat], tmat=val_loader.dataset.labels, mode='train'))
-            tst_ranker_score_mat = get_tree_fts([tst_ranker_score_mat], clf=clf, mode='test')*0.8 + tst_ranker_score_mat*0.2
+            clf = tree.DecisionTreeClassifier(max_depth=5)
+            clf = clf.fit(*process_tree_fts([val_ranker_score_mat, val_score_mat], tmat=val_loader.dataset.labels, mode='train'))
+            tst_ranker_score_mat = process_tree_fts([tst_ranker_score_mat, tst_score_mat], clf=clf, mode='test')*0.3 + tst_ranker_score_mat*0.7
 
         evaluator = XMCEvaluator(args, tst_loader, data_manager, prefix='tst_ranker')
         metrics = evaluator.eval(tst_ranker_score_mat)

@@ -10,6 +10,8 @@ from nets import *
 from resources import _c, load_config_and_runtime_args
 from datasets import DATA_MANAGERS, XMCEvaluator
 from dl_helper import unwrap
+if torch.__version__ > "1.11":
+    torch.backends.cuda.matmul.allow_tf32 = True
 
 import transformers
 transformers.set_seed(42)

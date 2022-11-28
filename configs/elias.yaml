@@ -13,7 +13,7 @@ save: True # Save best model and score matrix
 resume_path: '' # Resume training from this model checkpoint
 data_tokenization: offline # Mode of data tokenization [offline/online]
 track_metric: nDCG@5 # Track this metric to evaluate best model
-num_val_points: 0 # Number of validation points taken from training set for evaluation during training
+num_val_points: 4000 # Number of validation points taken from training set for evaluation during training
 cmat_seed: 0 # Seed for initial clustering of labels
 
 # Network parameters

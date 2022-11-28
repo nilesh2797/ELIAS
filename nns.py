@@ -4,6 +4,8 @@ import scipy.sparse as sp
 import time
 from tqdm import tqdm
 import torch.nn.functional as F
+if torch.__version__ > "1.11":
+    torch.backends.cuda.matmul.allow_tf32 = True
 
 class ExactSearch(object):
     def __init__(self, base, device, metric='ip', K=10, bsz=512, shard_size=1000000):

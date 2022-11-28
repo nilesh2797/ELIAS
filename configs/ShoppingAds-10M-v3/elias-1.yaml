@@ -5,21 +5,21 @@ __dependency__: configs/elias.yaml
 project: ELIAS
 expname: 'ELIAS-1' # Experiment name
 desc: 'Stage 1 of ELIAS training'
-dataset: 'ShoppingAds-100K' # Dataset name 
+dataset: 'ShoppingAds-10M-v3' # Dataset name 
 net: elias-1 # Network class identifier
 tf: distilbert-base-uncased # Name of transformer encoder to be used in the model, all huggingface transformer model names are applicable
 tf_max_len: 32 # Maximum input sequence length of transformer
-num_val_points: 10000 # Number of validation points taken from training set for evaluation during training
+num_val_points: 0 # Number of validation points taken from training set for evaluation during training
 
 # Network parameters
-A_init_path: 'Results/[project]/[dataset]/[expname]/cmat.npz' # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+A_init_path: 'Datasets/[dataset]/raw/cmat.npz' # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
 loss_lambda: 0 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
-wl_dim: 0 # If non-zero then encoder embeddings are projected by a linear MLP to specified dimensions only just before applying label classifiers (WL)
+wl_dim: 64 # If non-zero then encoder embeddings are projected by a linear MLP to specified dimensions only just before applying label classifiers (WL)
 
 # Training parameters
-num_epochs: 20 # Number of epochs
+num_epochs: 10 # Number of epochs
 bsz: 1024 # Mini-batch size
 w_accumulation_steps: 1 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
-lr: 0.005 # Learning rate for network parameters
-lr_wl: 0.005 # Learning rate for the classifier matrix (W_l) parameters
+lr: 0.001 # Learning rate for network parameters
+lr_wl: 0.001 # Learning rate for the classifier matrix (W_l) parameters
 lr_tf: 5.0e-5 # Learning rate for the transformer encoder (\phi) parameters

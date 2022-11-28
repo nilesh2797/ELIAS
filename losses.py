@@ -73,7 +73,7 @@ class ELIASLoss(nn.Module):
         loss_classification = self.criterion(topK_label_vals, topK_label_targets)
             
         # Figure out positively labelled shortlist targets since shortlist loss is only computed on positive entries
-        pos_label_shortlist_targets, pos_label_shortlist_inds = label_shortlist_targets.topk(b['y']['inds'].shape[1])
+        pos_label_shortlist_targets, pos_label_shortlist_inds = label_shortlist_targets.topk(min(b['y']['inds'].shape[1], label_shortlist_targets.shape[1]))
         pos_label_shortlist_vals = label_shortlist_vals.gather(1, pos_label_shortlist_inds)
         pos_label_shortlist_vals[pos_label_shortlist_targets < 1e-5] = 0
         loss_shortlist = self.criterion(pos_label_shortlist_vals, pos_label_shortlist_targets)
