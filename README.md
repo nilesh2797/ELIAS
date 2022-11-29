@@ -1,6 +1,11 @@
 <img src="media/neurips_logo.png" height="60" align="right"/>
 
-# ELIAS
+# [ELIAS](https://arxiv.org/pdf/2210.08410.pdf)
+<p align="center">
+    <a href="https://nilesh2797.github.io/docs/posters/ELIAS%20-%20poster.pdf">poster</a>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+    <a href="https://nilesh2797.github.io/docs/ppts/ELIAS-slides.pdf">slides</a>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+    <a href="">video</a></p>
+
 Learnable graph-based search index for large output spaces
 <p align="center"><img src="media/elias_model.jpg" height="250"/></p>
 
