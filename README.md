@@ -1,8 +1,8 @@
-<img src="media/neurips_logo.png" height="50" align="right"/>
+<img src="media/neurips_logo.png" height="60" align="right"/>
 
 # ELIAS
 Learnable graph-based search index for large output spaces
-<p align="center"><img src="media/elias_model.jpg" height="200"/></p>
+<p align="center"><img src="media/elias_model.jpg" height="250"/></p>
 
 > [End-to-end Learning to Index and Search in Large Output Spaces](https://arxiv.org/pdf/2210.08410.pdf) <br>
 > Nilesh Gupta, Patrick H. Chen, Hsiang-Fu Yu, Cho-Jui Hsieh, Inderjit S. Dhillon <br>
@@ -29,6 +29,7 @@ python elias_utils.py gen_cluster_A configs/${dataset}/elias-1.yaml --no_model t
 ```shell
 # Single GPU
 python train.py configs/${dataset}/elias-1.yaml
+
 # Multi GPU
 accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py configs/${dataset}/elias-1.yaml
 ```
@@ -36,6 +37,7 @@ accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gp
 ```shell
 # Single GPU
 python elias_utils.py gen_approx_A configs/${dataset}/elias-1.yaml
+
 # Multi GPU
 accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} elias_utils.py gen_approx_A configs/${dataset}/elias-1.yaml
 ```
@@ -43,6 +45,7 @@ accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gp
 ```shell
 # Single GPU
 python train.py configs/${dataset}/elias-2.yaml
+
 # Multi GPU
 accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py configs/${dataset}/elias-2.yaml
 ```
