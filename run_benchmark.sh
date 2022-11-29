@@ -1,5 +1,5 @@
 dataset=$1
-project=ELIAS-new
+project=ELIAS
 # Generate initial clustering with BOW features
 python elias_utils.py gen_cluster_A configs/${dataset}/elias-1.yaml --no_model true
 # Train ELIAS-1 model for a small number (5) of epochs
