@@ -4,3 +4,4 @@ wandb/
 tmp
 __pycache__/
 .ipynb_checkpoints/
+elias.ipynb
