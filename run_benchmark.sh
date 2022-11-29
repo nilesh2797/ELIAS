@@ -12,5 +12,7 @@ python train.py configs/${dataset}/elias-1.yaml
 python elias_utils.py gen_approx_A Results/${project}/${dataset}/ELIAS-1/config.yaml
 # Train ELIAS-2 model (it takes trained ELIAS-1 model and generated approximate A as initialization and trains them end-to-end)
 python train.py configs/${dataset}/elias-2.yaml
+# Evaluate trained model
+python eval.py Results/${project}/${dataset}/ELIAS-2/config.yaml
 # Learn sparse ranker to re-rank top 100 predictions (only intended to get best precision numbers for paper, not very useful for retrieval or production)
 python elias_utils.py sparse_ranker Results/${project}/${dataset}/ELIAS-2/config.yaml

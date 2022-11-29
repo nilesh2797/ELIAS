@@ -7,17 +7,37 @@ Learnable graph-based search index for large output spaces
 > [End-to-end Learning to Index and Search in Large Output Spaces](https://arxiv.org/pdf/2210.08410.pdf) <br>
 > Nilesh Gupta, Patrick H. Chen, Hsiang-Fu Yu, Cho-Jui Hsieh, Inderjit S. Dhillon <br>
 > Neurips 2022
-## Preparing data
 
-## Download pretrained model 
-Coming soon...
-## Predicting ELIAS
+## Highlights
+- Fully learnable graph-based search index for classification in large output space
+- Scalable to $\mathcal{O}(10M)$ label space on a single A100 GPU
+- Achieves SOTA on multiple large-scale [extreme classification](http://manikvarma.org/downloads/XC/XMLRepository.html) benchmarks
+## Preparing Data
+The codebase assumes following data structure: <br>
+<pre>
+Datasets/
+└── amazon-670k # Dataset name
+    ├── raw
+    │   ├── trn_X.txt # train input file, ith line is the text input for ith data point
+    │   └── tst_X.txt # test input file, ith line is the text input for ith data point
+    ├── X.trn.npz # train bow input features (needed to generate initial clustering)
+    ├── Y.trn.npz # train relevance matrix (stored in scipy sparse npz format), num_train x num_labels
+    └── Y.tst.npz # test relevance matrix (stored in scipy sparse npz format), num_test x num_labels
+</pre>
+Before running the training/testing the default code expects you to convert the input features to BERT's (or any text transformer) tokenized input indices. You can achieve that by running:
+```shell
+dataset="amazon-670k"
+tf-max-len="128" # Use 32 for short-text datasets
+tf-token-type="bert-base-uncased" # You can use any huggingface pre-trained tokenization
+./prepare.sh ${dataset-name} ${tf-max-len} ${tf-token-type}
+```
+## Evaluating ELIAS
 ```shell
 # Single GPU
 python eval.py ${config_dir}/config.yaml
 
 # Multi GPU
-accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py ${config_dir}/config.yaml
+accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py Results/ELIAS/${dataset}/${expname}/config.yaml
 ```
 ## Training ELIAS
 Sample script: [run_benchmark.sh](./run_benchmark.sh) (example `./run_benchmark.sh amazon-670k`)
@@ -49,6 +69,10 @@ python train.py configs/${dataset}/elias-2.yaml
 # Multi GPU
 accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py configs/${dataset}/elias-2.yaml
 ```
+## Download pretrained models
+Coming soon...
+## Notebook Demo
+Coming soon...
 ## Cite
 ```bib
 @InProceedings{ELIAS,
