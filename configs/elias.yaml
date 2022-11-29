@@ -46,5 +46,5 @@ weight_decay: 0.01 # Optimizer weight decay
 amp_encode: False # Encode input (i.e. transformer forward) using pytorch amp
 norm_embs: False # Normalize embeddings
 use_swa: False # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
-swa_start: 8 # SWA start epoch
-swa_step: 1000 # SWA step size
+swa_start: 8 # SWA start epoch, ignore if use_swa is set to False
+swa_step: 1000 # SWA step size, ignore if use_swa is set to False
