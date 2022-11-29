@@ -76,78 +76,6 @@ class XMCCollator():
 
 		return b
 
-class TwoTowerDataset(BaseDataset):
-	def __init__(self, x_dataset, y_dataset):
-		super().__init__(labels=x_dataset.labels, filter_mat=x_dataset.filter_mat)
-		self.x_dataset = x_dataset
-		self.y_dataset = y_dataset
-            
-	def __getitem__(self, index):
-		ret = {'index': index}
-		return ret
-
-	def get_fts(self, indices, source):
-		if source == 'x':
-			return self.x_dataset.get_fts(indices)
-		elif source == 'y':
-			return self.y_dataset.get_fts(indices)
-
-	def __len__(self):
-		return self.labels.shape[0]
-
-class TwoTowerTrainCollator():
-    def __init__(self, dataset: TwoTowerDataset, _type='batch-rand'):
-        self.numy = dataset.labels.shape[1]
-        self.dataset = dataset
-        self._type = _type
-        self.mask = torch.zeros(self.numy+1).long()
-    
-    def __call__(self, batch):
-        batch_size = len(batch)
-        ids = np.array([b['index'] for b in batch])
-        
-        batch_data = {'batch_size': batch_size,
-                      'numy': self.numy,
-                      'y': csr_to_pad_tensor(self.dataset.labels[ids], self.numy),
-                      'ids': torch.Tensor([b['index'] for b in batch]).long(),
-                      'xfts': self.dataset.get_fts(ids, 'x')
-                     }
-        
-        batch_y = None
-        
-        if self._type == 'shorty':
-            batch_data['shorty'] = csr_to_pad_tensor(self.dataset.shorty[ids], self.numy)
-            batch_y_inds = torch.multinomial(batch_data['y']['vals'].double(), 1)
-            batch_pos_y = torch.gather(batch_data['y']['inds'], 1, batch_y_inds).squeeze()
-            batch_y = torch.LongTensor(np.union1d(batch_pos_y, batch_data['shorty']['inds']))
-            
-            self.mask[batch_y] = torch.arange(batch_y.shape[0])
-            batch_data['pos-inds'] = self.mask[batch_pos_y].reshape(-1, 1)
-            batch_data['shorty']['batch-inds'] = self.mask[batch_data['shorty']['inds'].flatten()].reshape(batch_data['shorty']['inds'].shape)
-            self.mask[batch_y] = 0
-            
-            batch_data['targets'] = torch.zeros((batch_size, batch_y.shape[0]))
-            for i in range(batch_size):
-                self.mask[batch_data['y']['inds'][i]] = True
-                batch_data['targets'][i][self.mask[batch_y].bool()] = 1.0
-                self.mask[batch_data['y']['inds'][i]] = False
-        
-        elif self._type == 'batch-rand':
-            batch_y_inds = torch.multinomial(batch_data['y']['vals'].double(), 1)
-            batch_y = torch.gather(batch_data['y']['inds'], 1, batch_y_inds).squeeze()
-            batch_data['pos-inds'] = torch.arange(batch_size).reshape(-1, 1)
-            batch_data['targets'] = torch.zeros((batch_size, batch_y.shape[0]))
-            for i in range(batch_size):
-                self.mask[batch_data['y']['inds'][i]] = True
-                batch_data['targets'][i][self.mask[batch_y].bool()] = 1.0
-                self.mask[batch_data['y']['inds'][i]] = False
-                
-        if batch_y is not None:
-            batch_data['batch_y'] = batch_y
-            batch_data['yfts'] = self.dataset.get_fts(batch_y.numpy(), 'y')
-
-        return batch_data
-
 class XMCDataManager():
 	def __init__(self, args):
 		self.trn_X_Y = sp.load_npz(f'{args.DATA_DIR}/Y.trn.npz')
@@ -239,53 +167,6 @@ class XMCDataManager():
 		self.tst_loader = torch.utils.data.DataLoader(self.tst_dataset, **data_loader_args)
 
 		return self.trn_loader, self.val_loader, self.tst_loader
-
-class TwoTowerDataManager(XMCDataManager):
-	def __init__(self, args):
-		super().__init__(args)
-		self.transpose_trn_dataset = args.transpose_trn_dataset
-
-	def build_datasets(self):
-		trnx_dataset, valx_dataset, tstx_dataset = super().build_datasets()
-		if self.data_tokenization == 'offline':
-			self.lbl_dataset = OfflineBertDataset(f'{self.DATA_DIR}/raw/Y.{self.tf_token_type}_{self.tf_max_len}.dat', self.trn_X_Y.T.tocsr(), self.tf_max_len, self.tf_token_type, sample=None, filter_mat=None)
-		elif self.data_tokenization == 'online':
-			Y = [x.strip() for x in open(f'{self.DATA_DIR}/raw/Y.txt').readlines()]
-			self.lbl_dataset = OnlineBertDataset(Y, self.trn_X_Y.T.tocsr(), self.tf_max_len, self.tf_token_type, sample=None, filter_mat=None)
-		else:
-			raise Exception(f"Unrecongnized data_tokenization argument: {self.data_tokenization}")
-		
-		if self.transpose_trn_dataset:
-			self.trn_dataset = TwoTowerDataset(self.lbl_dataset, trnx_dataset)
-		else:
-			self.trn_dataset = TwoTowerDataset(trnx_dataset, self.lbl_dataset)
-		self.val_dataset = TwoTowerDataset(valx_dataset, self.lbl_dataset)
-		self.tst_dataset = TwoTowerDataset(tstx_dataset, self.lbl_dataset)
-
-		return self.trn_dataset, self.val_dataset, self.tst_dataset
-
-	def build_data_loaders(self):
-		if not hasattr(self, "trn_dataset"):
-			self.build_datasets()
-
-		data_loader_args = {
-			'batch_size': self.bsz,
-			'num_workers': 4,
-			'collate_fn': TwoTowerTrainCollator(self.trn_dataset),
-			'shuffle': True,
-			'pin_memory': True
-		}
-
-		self.trn_loader = torch.utils.data.DataLoader(self.trn_dataset, **data_loader_args)
-
-		data_loader_args['shuffle'] = False
-		data_loader_args['collate_fn'] = None
-		data_loader_args['batch_size'] = 2*self.bsz
-		self.val_loader = torch.utils.data.DataLoader(self.val_dataset, **data_loader_args)
-		self.tst_loader = torch.utils.data.DataLoader(self.tst_dataset, **data_loader_args)
-
-		return self.trn_loader, self.val_loader, self.tst_loader
-
 class XMCEvaluator:
 	def __init__(self, args, data_source, data_manager: XMCDataManager, prefix='default'):
 		self.eval_interval = args.eval_interval
@@ -331,6 +212,5 @@ class XMCEvaluator:
 
 DATA_MANAGERS = {
 	'xmc': XMCDataManager,
-	'two-tower': TwoTowerDataManager
 }
 			

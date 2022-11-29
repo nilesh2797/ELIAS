@@ -1,5 +1,6 @@
 Results/
 Datasets
 wandb/
+tmp
 __pycache__/
 .ipynb_checkpoints/

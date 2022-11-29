@@ -83,55 +83,8 @@ class ELIASLoss(nn.Module):
         del b, topK_label_vals, topK_label_inds, label_shortlist_vals, label_shortlist_inds, topK_label_targets, label_shortlist_targets
         return loss
 
-class TripletOHNM(nn.Module):
-    def __init__(self, args):
-        super(TripletOHNM, self).__init__()
-        self.numy = args.numy
-        self.margin = args.loss_margin
-        self.num_neg = args.loss_num_neg
-
-    def forward(self, model, b):
-        xembs = model.encode({'xfts': b['xfts']})
-        yembs = model.encode({'xfts': b['yfts']})
-        target = b['targets']
-        sim = xembs @ yembs.T
-        sim_p = torch.gather(sim, 1, b['pos-inds']).reshape(b['batch_size'], -1)
-        neg_sim = torch.where(target < 1e-6, sim, torch.full_like(sim, -100))
-        _, indices = torch.topk(neg_sim, largest=True, dim=1, k=self.num_neg)
-        sim_n = sim.gather(1, indices)
-        loss = torch.max(torch.zeros_like(sim_p), sim_n - sim_p + self.margin)
-        mask = torch.where(loss != 0, torch.ones_like(loss), torch.zeros_like(loss))
-        prob = torch.softmax(sim_n * mask, dim=1)
-        reduced_loss =  (loss * prob).mean()
-        
-        del b, xembs, yembs, sim, neg_sim, sim_p, sim_n, mask, prob, loss
-        return reduced_loss
-
-class InfoNCE(nn.Module):
-    def __init__(self, args):
-        super().__init__()
-        self.loss_tau = args.loss_tau
-        self.loss_reduction = args.loss_reduction
-
-    def forward(self, model, b):
-        xembs = model.encode({'xfts': b['xfts']})
-        yembs = model.encode({'xfts': b['yfts']})
-        target = b['targets']
-        sim = xembs @ yembs.T
-        return F.cross_entropy(sim / self.loss_tau, target, reduction=self.loss_reduction)
-
-class TFLoss(nn.Module):
-    def __init__(self, args):
-        super().__init__()
-
-    def forward(self, model, b):
-        return model(b).loss
-    
 LOSSES = {
     'ova-bce': OvABCELoss,
     'batch-bce': BatchBCELoss,
-    'elias-loss': ELIASLoss,
-    'triplet-ohnm': TripletOHNM,
-    'infonce': InfoNCE,
-    'tf-loss': TFLoss
+    'elias-loss': ELIASLoss
     }

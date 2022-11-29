@@ -1,15 +1,11 @@
-from typing import Dict
 import torch
 import torch.nn as nn
-import torch.autograd as autograd
 import torch.nn.functional as F
 
-from nns import ExactSearch
 from dl_helper import create_tf_pooler, ToD, csr_to_pad_tensor, dedup_long_tensor, BatchIterator, SparseLinear, apply_and_accumulate
 from transformers import AutoModel
 import numpy as np
 import scipy.sparse as sp
-from tqdm import tqdm
 
 class BaseNet(nn.Module):
     def __init__(self):
@@ -313,20 +309,8 @@ class ELIAS2(ELIAS1):
             if clean: self.A_nz_vals_param.data[:] = 1
             self.update_A_nz_vals()
 
-class TwoTowerEncoder(TFEncoder):
-    def __init__(self, args):
-        super().__init__(args)
-
-    def predict(self, data_loader, K = 100, bsz = 256):
-        x_embs = self.get_embs(data_loader.dataset.x_dataset, bsz)
-        y_embs = self.get_embs(data_loader.dataset.y_dataset, bsz)
-        es = ExactSearch(y_embs, device=self.get_device(), K=K)
-        score_mat = es.search(x_embs)
-        return score_mat
 NETS = {
     'ova-net': OvANet,
     'elias-1': ELIAS1,
-    'elias-2': ELIAS2,
-    'tf-encoder': TFEncoder,
-    'two-tower': TwoTowerEncoder
+    'elias-2': ELIAS2
     }

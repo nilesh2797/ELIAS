@@ -32,16 +32,6 @@ def dedup_long_tensor(x: torch.LongTensor, replace_val=0, stable=True):
     if stable: return y.scatter_(1, indices, y.clone()) # undo sort
     else: return y
 
-from copy import deepcopy
-def expand_multilabel_dataset(dataset, copy=True, multiclass=False):
-    new_dataset = deepcopy(dataset) if copy else dataset
-    labels = dataset.labels
-    new_dataset.sample = labels.tocoo().row
-    if multiclass:  new_dataset.labels = sp.csr_matrix((labels.data, labels.indices, np.arange(labels.nnz+1)),(labels.nnz, labels.shape[1]))
-    else:           new_dataset.labels = labels[new_dataset.sample]
-    new_dataset.filter_mat = dataset.filter_mat[dataset.sample] if dataset.filter_mat is not None else None
-    return new_dataset
-
 def csr_to_bow_tensor(spmat):
     return {'inputs': torch.LongTensor(spmat.indices),
             'offsets': torch.LongTensor(spmat.indptr),
