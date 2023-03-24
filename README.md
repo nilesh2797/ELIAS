@@ -11,7 +11,7 @@
 Learnable graph-based search index for large output spaces
 <p align="center"><img src="media/elias_model.jpg" height="250"/></p>
 
-> [End-to-end Learning to Index and Search in Large Output Spaces](https://arxiv.org/pdf/2210.08410.pdf) <br>
+> [ELIAS: End-to-end Learning to Index and Search in Large Output Spaces](https://arxiv.org/pdf/2210.08410.pdf) <br>
 > Nilesh Gupta, Patrick H. Chen, Hsiang-Fu Yu, Cho-Jui Hsieh, Inderjit S. Dhillon <br>
 > Neurips 2022
 
@@ -84,7 +84,7 @@ Coming soon...
 ```bib
 @InProceedings{ELIAS,
   author    = "Gupta, N. and Chen, P.H. and Yu, H-F. and Hsieh, C-J. and Dhillon, I.",
-  title     = "End-to-end Learning to Index and Search in Large Output Spaces",
+  title     = "ELIAS: End-to-end Learning to Index and Search in Large Output Spaces",
   booktitle = "Neural Information Processing Systems",
   month     = "November",
   year      = "2022"
