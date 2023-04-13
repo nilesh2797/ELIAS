@@ -58,7 +58,7 @@ python elias_utils.py gen_cluster_A configs/${dataset}/elias-1.yaml --no_model t
 python train.py configs/${dataset}/elias-1.yaml
 
 # Multi GPU
-accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py configs/${dataset}/elias-1.yaml
+accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} train.py configs/${dataset}/elias-1.yaml
 ```
 ### *Generate sparse approx adjacency graph matrix*
 ```shell
@@ -74,7 +74,7 @@ accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gp
 python train.py configs/${dataset}/elias-2.yaml
 
 # Multi GPU
-accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} eval.py configs/${dataset}/elias-2.yaml
+accelerate launch --config_file configs/accelerate.yaml --num_processes ${num_gpus} train.py configs/${dataset}/elias-2.yaml
 ```
 ## Download pretrained models
 Coming soon...
