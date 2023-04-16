@@ -2,7 +2,7 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'ELIAS-2-e-50-loss_lamb_0.05-lr_clf_0.02-lr_enc_1e-4-bs_420-num_clusters_2048-rerun' # Experiment name
+expname: 'ELIAS-2-e-50-loss_lamb_0.05-lr_clf_0.02-lr_enc_1e-4-bs_420-num_clusters_2048' # Experiment name
 dataset: LF-AmazonTitles-131K # Dataset name 
 net: elias-2 # Network class identifier
 loss: elias-loss # Loss class identifier
@@ -14,7 +14,7 @@ A_init_path: Results/[project]/[dataset]/ELIAS-1-loss_lamb_0.05-lr_clf_0.02-lr_e
 loss_lambda: 0.05
 
 # Training parameters
-num_epochs: 50 # Number of epochs
+num_epochs: 40 # Number of epochs
 bsz: 420 # Mini-batch size
 w_accumulation_steps: 10 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
 lr: 0.005 # Learning rate for network parameters
