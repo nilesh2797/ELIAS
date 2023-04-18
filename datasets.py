@@ -204,9 +204,6 @@ class XMCEvaluator:
 			metrics = self.eval(score_mat, epoch, loss)
 			# Save model irrespective of best score
 			save_pth = f'{self.OUT_DIR}/model_epoch_{epoch}.pt'
-			if os.path.exists(save_pth):
-				save_pth = f'{self.OUT_DIR}/model_epoch_{epoch}_s2.pt'
-			assert not os.path.exists(save_pth)
 			net.save(save_pth)
 			if metrics.iloc[0][self.track_metric] > self.best_score:
 				self.best_score = metrics.iloc[0][self.track_metric]
