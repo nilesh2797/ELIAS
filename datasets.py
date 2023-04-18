@@ -202,6 +202,8 @@ class XMCEvaluator:
 		if epoch%self.eval_interval == 0 or epoch == (self.num_epochs-1):
 			score_mat = self.predict(net)
 			metrics = self.eval(score_mat, epoch, loss)
+			# Save model irrespective of best score
+			net.save(f'{self.OUT_DIR}/model_epoch_{epoch}.pt')
 			if metrics.iloc[0][self.track_metric] > self.best_score:
 				self.best_score = metrics.iloc[0][self.track_metric]
 				print(_c(f'Found new best model with {self.track_metric}: {"%.2f"%self.best_score}\n', attr='blue'))
