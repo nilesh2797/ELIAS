@@ -3,7 +3,7 @@ __dependency__: configs/elias.yaml
 
 # General parameters
 expname: 'elias-2-def-final' # Experiment name
-dataset: LF-AmazonTitles-131K-Aug-Best # Dataset name 
+dataset: LF-AmazonTitles-131K-Aug-Soft-Best # Dataset name 
 net: elias-2 # Network class identifier
 loss: elias-loss # Loss class identifier
 tf_max_len: 32 # Maximum input sequence length of transformer
