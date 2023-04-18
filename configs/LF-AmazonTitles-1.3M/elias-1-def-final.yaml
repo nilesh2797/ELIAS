@@ -13,7 +13,7 @@ A_init_path: 'Results/[project]/[dataset]/[expname]/cmat.npz' # Initialize label
 loss_lambda: 0.01 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
 
 # Training parameters
-num_epochs: 15 # Number of epochs
+num_epochs: 5 # Number of epochs
 bsz: 8 # Mini-batch size
 w_accumulation_steps: 10 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
 lr: 0.005 # Learning rate for network parameters
