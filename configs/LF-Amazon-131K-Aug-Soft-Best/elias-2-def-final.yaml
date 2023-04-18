@@ -2,15 +2,15 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'elias-2-def-final-lr-enc-7e-5-grad-acc-10-loss-lam-0.01' # Experiment name
+expname: 'elias-2-def-final' # Experiment name
 dataset: LF-Amazon-131K # Dataset name 
 net: elias-2 # Network class identifier
 loss: elias-loss # Loss class identifier
 tf_max_len: 128 # Maximum input sequence length of transformer
-resume_path: Results/[project]/[dataset]/elias-1-def-final-lr-1e-4/model.pt
+resume_path: Results/[project]/[dataset]/elias-1-def-final/model.pt
 
 # Network parameters
-A_init_path: Results/[project]/[dataset]/elias-1-def-final-lr-1e-4/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+A_init_path: Results/[project]/[dataset]/elias-1-def-final/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
 loss_lambda: 0.01
 
 # Training parameters
