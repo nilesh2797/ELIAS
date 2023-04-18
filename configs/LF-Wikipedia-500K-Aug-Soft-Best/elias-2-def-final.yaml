@@ -7,10 +7,10 @@ dataset: LF-Wikipedia-500K-Aug-Soft-Best # Dataset name
 net: elias-2 # Network class identifier
 loss: elias-loss # Loss class identifier
 tf_max_len: 256 # Maximum input sequence length of transformer
-resume_path: Results/[project]/[dataset]/elias-1-def-final-lr-enc-5e-5-lr-clf-0.005-loss-lam-0.05/model.pt
+resume_path: Results/[project]/[dataset]/elias-1-def-final/model.pt
 
 # Network parameters
-A_init_path: Results/[project]/[dataset]/elias-1-def-final-lr-enc-5e-5-lr-clf-0.005-loss-lam-0.05/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+A_init_path: Results/[project]/[dataset]/elias-1-def-final/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
 loss_lambda: 0.05
 
 # Training parameters
