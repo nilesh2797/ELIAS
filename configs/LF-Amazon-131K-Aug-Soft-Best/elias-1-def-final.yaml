@@ -2,7 +2,7 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'elias-1-def-final-lr-1e-4' # Experiment name
+expname: 'elias-1-def-final' # Experiment name
 desc: 'Stage 1 of ELIAS training'
 dataset: 'LF-Amazon-131K' # Dataset name 
 net: elias-1 # Network class identifier
