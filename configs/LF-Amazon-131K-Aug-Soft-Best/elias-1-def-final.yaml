@@ -4,7 +4,7 @@ __dependency__: configs/elias.yaml
 # General parameters
 expname: 'elias-1-def-final' # Experiment name
 desc: 'Stage 1 of ELIAS training'
-dataset: 'LF-Amazon-131K' # Dataset name 
+dataset: 'LF-Amazon-131K-Aug-Soft-Best' # Dataset name 
 net: elias-1 # Network class identifier
 tf_max_len: 128 # Maximum input sequence length of transformer
 
