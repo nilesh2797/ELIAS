@@ -13,13 +13,14 @@ from xclib.utils.sparse import retain_topk
 from resources import _c, load_config_and_runtime_args
 from datasets import XMCDataManager, XMCEvaluator
 from dl_helper import unwrap
-
+from tqdm import tqdm
 import transformers
 transformers.set_seed(42)
 if torch.__version__ > "1.11":
     torch.backends.cuda.matmul.allow_tf32 = True
 
 # Config and runtime argument parsing
+print(os.listdir())
 mode = sys.argv[1]
 args = load_config_and_runtime_args(sys.argv[1:], no_model=False)
     

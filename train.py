@@ -1,6 +1,9 @@
 # Imports
 from accelerate import Accelerator
-accelerator = Accelerator()
+from accelerate.utils import DistributedDataParallelKwargs
+
+kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+accelerator = Accelerator(kwargs_handlers=[kwargs])
 IS_MAIN_PROC = accelerator.is_main_process
 
 import sys, os, time, socket, yaml, wandb, logging

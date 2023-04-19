@@ -2,20 +2,20 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'ELIAS-1' # Experiment name
+expname: 'elias-1-def-final-lr-enc-5e-5-lr-clf-0.005-loss-lam-0.05' # Experiment name
 desc: 'Stage 1 of ELIAS training'
-dataset: 'LF-AmazonTitles-131K' # Dataset name 
+dataset: 'LF-Wikipedia-500K' # Dataset name 
 net: elias-1 # Network class identifier
-tf_max_len: 32 # Maximum input sequence length of transformer
+tf_max_len: 256 # Maximum input sequence length of transformer
 
 # Network parameters
 A_init_path: 'Results/[project]/[dataset]/[expname]/cmat.npz' # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
-loss_lambda: 0.01 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
+loss_lambda: 0.05 # Weight to shortlist loss in the total loss, L = L_classification + \lambda * L_shortlist
 
 # Training parameters
-num_epochs: 20 # Number of epochs
-bsz: 1024 # Mini-batch size
+num_epochs: 15 # Number of epochs
+bsz: 128 # Mini-batch size
 w_accumulation_steps: 1 # It's more efficient to apply weight updates to classification matrix after every specified accumulation steps
 lr: 0.005 # Learning rate for network parameters
 lr_wl: 0.005 # Learning rate for the classifier matrix (W_l) parameters
-lr_tf: 2.0e-4 # Learning rate for the transformer encoder (\phi) parameters
+lr_tf: 5.0e-5 # Learning rate for the transformer encoder (\phi) parameters
