@@ -2,7 +2,7 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'elias-1-def-final' # Experiment name
+expname: 'elias-1-def-final-512' # Experiment name
 desc: 'Stage 1 of ELIAS training'
 dataset: 'LF-AmazonTitles-1.3M' # Dataset name
 net: elias-1 # Network class identifier
@@ -20,3 +20,4 @@ lr: 0.005 # Learning rate for network parameters
 lr_wl: 0.001 # Learning rate for the classifier matrix (W_l) parameters
 lr_tf: 2.0e-5 # Learning rate for the transformer encoder (\phi) parameters
 eval_interval: 1
+wl_dim: 512

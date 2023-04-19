@@ -47,7 +47,7 @@ def load_config_and_runtime_args(argv, **extra_args):
 
 def get_inv_prop(X_Y, dataset_name):
     if "amazon" in dataset_name.lower(): A = 0.6; B = 2.6
-    elif "wiki" in dataset_name.lower() and "wikiseealso" not in dataset_name.lower(): A = 0.5; B = 0.4
+    elif "wiki" in dataset_name.lower() and "wikihierarchy" not in dataset_name.lower() and "wikiseealso" not in dataset_name.lower(): A = 0.5; B = 0.4
     else : A = 0.55; B = 1.5
     return xc_metrics.compute_inv_propesity(X_Y, A, B)
 

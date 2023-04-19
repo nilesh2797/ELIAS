@@ -2,15 +2,15 @@
 __dependency__: configs/elias.yaml
 
 # General parameters
-expname: 'elias-2-def-final' # Experiment name
+expname: 'elias-2-def-final-768' # Experiment name
 dataset: WikiHierarchy # Dataset name 
 net: elias-2 # Network class identifier
 loss: elias-loss # Loss class identifier
 tf_max_len: 32 # Maximum input sequence length of transformer
-resume_path: Results/[project]/[dataset]/elias-1-def-final/model.pt
+resume_path: Results/[project]/[dataset]/elias-1-def-final-768/model.pt
 
 # Network parameters
-A_init_path: Results/[project]/[dataset]/elias-1-def-final/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
+A_init_path: Results/[project]/[dataset]/elias-1-def-final-768/A_approx.npz # Initialize label-cluster adjacency matrix from this file (expects *.npz file)
 loss_lambda: 0.05
 
 # Training parameters
@@ -23,4 +23,3 @@ lr_tf: 5.0e-5 # Learning rate for the transformer encoder (\phi) parameters
 use_swa: True # Use stochastic weighted averaging (SWA) trick, can give minor improvements in results
 swa_start: 8 # SWA start epoch
 swa_step: 500 # SWA step size
-wl_dim: 512
